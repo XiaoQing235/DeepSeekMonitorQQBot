@@ -4,7 +4,7 @@ import time
 
 head = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer sk-c78fff1e8f4548c5ac6141cc28d5d65b'
+    'Authorization': 'Bearer <APIkey>'
 }
 
 
