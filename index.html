@@ -9,14 +9,29 @@
             padding: 20px;
             max-width: 1200px;
             margin: 0 auto;
+            background-color: #1e1e1e; /* 暗色调背景 */
+            color: #ffffff; /* 前景文字颜色 */
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.light-theme {
+            background-color: #ffffff; /* 亮色调背景 */
+            color: #000000; /* 前景文字颜色 */
         }
 
         .status-container {
             position: relative;
-            border: 1px solid #ddd;
+            border: 1px solid #444; /* 暗色调边框 */
             padding: 20px;
             border-radius: 8px;
             margin-top: 20px;
+            background-color: #2d2d2d; /* 暗色调容器背景 */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        body.light-theme .status-container {
+            background-color: #f5f5f5; /* 亮色调容器背景 */
+            border-color: #ddd; /* 亮色调边框 */
         }
 
         .status-bar {
@@ -56,15 +71,23 @@
         }
 
         .status-block {
-            border: 1px solid #ddd;
+            border: 1px solid #444; /* 暗色调边框 */
             flex: 1;
             height: 30px;
             transition: background-color 0.3s;
             cursor: pointer;
         }
 
+        body.light-theme .status-block {
+            border-color: #ddd; /* 亮色调边框 */
+        }
+
         .empty-block {
-            background-color: white;
+            background-color: #2d2d2d; /* 暗色调背景 */
+        }
+
+        body.light-theme .empty-block {
+            background-color: #f5f5f5; /* 亮色调背景 */
         }
 
         .success { background-color: #4CAF50; }
@@ -75,8 +98,15 @@
         .stats-panel {
             margin-top: 20px;
             padding: 15px;
-            background: #f5f5f5;
+            background: #2d2d2d; /* 暗色调背景 */
             border-radius: 4px;
+            border: 1px solid #444; /* 暗色调边框 */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        body.light-theme .stats-panel {
+            background: #f5f5f5; /* 亮色调背景 */
+            border-color: #ddd; /* 亮色调边框 */
         }
 
         .stat-item {
@@ -86,15 +116,22 @@
         .chart-container {
             margin-top: 20px;
             padding: 15px;
-            background: #f5f5f5;
+            background: #2d2d2d; /* 暗色调背景 */
             border-radius: 4px;
+            border: 1px solid #444; /* 暗色调边框 */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        body.light-theme .chart-container {
+            background: #f5f5f5; /* 亮色调背景 */
+            border-color: #ddd; /* 亮色调边框 */
         }
 
         /* 悬浮窗样式 */
         .tooltip {
             position: absolute;
-            background-color: white;
-            border: 1px solid #ddd;
+            background-color: #333; /* 暗色调背景 */
+            border: 1px solid #444; /* 暗色调边框 */
             border-radius: 4px;
             padding: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -102,6 +139,30 @@
             display: none;
             max-width: 300px;
             word-wrap: break-word;
+            color: #ffffff; /* 前景文字颜色 */
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        body.light-theme .tooltip {
+            background-color: #ffffff; /* 亮色调背景 */
+            border-color: #ddd; /* 亮色调边框 */
+            color: #000000; /* 前景文字颜色 */
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip-close {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 16px;
         }
 
         /* 移动端适配 */
@@ -123,12 +184,26 @@
                 font-size: 14px;
             }
         }
+
+        /* 主题切换按钮 */
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
     </style>
     <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>服务可用性监控</h1>
+    <button class="theme-switch" onclick="toggleTheme()">切换主题</button>
     <div class="status-container">
         <div class="status-bar" id="statusBar"></div>
     </div>
@@ -149,7 +224,10 @@
     </div>
 
     <!-- 悬浮窗 -->
-    <div id="tooltip" class="tooltip"></div>
+    <div id="tooltip" class="tooltip">
+        <button class="tooltip-close" onclick="hideTooltip()">×</button>
+        <div id="tooltip-content"></div>
+    </div>
 
     <script>
         // 初始化 Chart.js 折线图
@@ -187,16 +265,19 @@
 
         // 悬浮窗相关逻辑
         const tooltip = document.getElementById('tooltip');
+        const tooltipContent = document.getElementById('tooltip-content');
 
         function showTooltip(content, x, y) {
-            tooltip.innerHTML = content;
+            tooltipContent.innerHTML = content;
             tooltip.style.left = `${x}px`;
             tooltip.style.top = `${y}px`;
             tooltip.style.display = 'block';
+            setTimeout(() => tooltip.classList.add('show'), 10);
         }
 
         function hideTooltip() {
-            tooltip.style.display = 'none';
+            tooltip.classList.remove('show');
+            setTimeout(() => tooltip.style.display = 'none', 300);
         }
 
         // 点击状态块显示悬浮窗
@@ -205,10 +286,37 @@
                 const content = event.target.title;
                 const rect = event.target.getBoundingClientRect();
                 showTooltip(content, rect.left + window.scrollX, rect.bottom + window.scrollY);
-            } else {
-                hideTooltip();
             }
         });
+
+        // 主题切换逻辑
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+
+        // 初始化主题
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+        }
+
+        // 折线图数据持久化
+        function saveChartData() {
+            localStorage.setItem('chartLabels', JSON.stringify(availabilityChart.data.labels));
+            localStorage.setItem('chartData', JSON.stringify(availabilityChart.data.datasets[0].data));
+        }
+
+        function loadChartData() {
+            const labels = JSON.parse(localStorage.getItem('chartLabels') || '[]');
+            const data = JSON.parse(localStorage.getItem('chartData') || '[]');
+            availabilityChart.data.labels = labels;
+            availabilityChart.data.datasets[0].data = data;
+            availabilityChart.update();
+        }
+
+        // 初始化时加载持久化的数据
+        loadChartData();
 
         function updateStatus() {
             fetch('/status')
@@ -264,13 +372,15 @@
                     availabilityChart.data.labels.push(timestamp);
                     availabilityChart.data.datasets[0].data.push(availability);
 
-                    // 最多显示 50 个数据点
-                    if (availabilityChart.data.labels.length > 50) {
+                    // 动态调整数据点数量
+                    const maxDataPoints = window.innerWidth < 768 ? 30 : 50;
+                    if (availabilityChart.data.labels.length > maxDataPoints) {
                         availabilityChart.data.labels.shift();
                         availabilityChart.data.datasets[0].data.shift();
                     }
 
                     availabilityChart.update();
+                    saveChartData(); // 保存折线图数据
                 });
         }
 
