@@ -317,7 +317,7 @@
         const availabilityChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [], // 时间戳
+                labels: [], // 横轴：检查次数
                 datasets: [{
                     label: '历史可用率',
                     data: [], // 可用率数据
@@ -330,7 +330,7 @@
                     x: {
                         title: {
                             display: true,
-                            text: '时间'
+                            text: '检查次数'
                         }
                     },
                     y: {
@@ -408,9 +408,15 @@
         function exportData() {
             const labels = availabilityChart.data.labels;
             const data = availabilityChart.data.datasets[0].data;
-            const csvContent = "data:text/csv;charset=utf-8," 
-                + "时间,可用率\n" 
-                + labels.map((label, index) => `${label},${data[index]}`).join("\n");
+            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
+
+            const csvContent = "data:text/csv;charset=utf-8,\ufeff" 
+                + "检查次数,可用率,状态码,状态,耗时\n" 
+                + labels.map((label, index) => {
+                    const check = checks[index] || {};
+                    return `${label},${data[index]},${check.status_code || ''},${check.status || ''},${check.duration || ''}`;
+                }).join("\n");
+
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -419,6 +425,9 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // 存储检查数据
+        let checks = JSON.parse(localStorage.getItem('checks') || '[]');
 
         function updateStatus() {
             fetch('/status')
@@ -470,15 +479,20 @@
                     }
 
                     // 更新历史可用率折线图
-                    const timestamp = new Date().toLocaleTimeString();
-                    availabilityChart.data.labels.push(timestamp);
+                    const checkCount = data.current_count;
+                    availabilityChart.data.labels.push(checkCount);
                     availabilityChart.data.datasets[0].data.push(availability);
+
+                    // 存储检查数据
+                    checks.push(data.checks[data.checks.length - 1] || {});
+                    localStorage.setItem('checks', JSON.stringify(checks));
 
                     // 动态调整数据点数量
                     const maxDataPoints = window.innerWidth < 768 ? 30 : 50;
                     if (availabilityChart.data.labels.length > maxDataPoints) {
                         availabilityChart.data.labels.shift();
                         availabilityChart.data.datasets[0].data.shift();
+                        checks.shift();
                     }
 
                     availabilityChart.update();
