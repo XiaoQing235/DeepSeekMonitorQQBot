@@ -1,0 +1,282 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>服务可用性监控</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .status-container {
+            position: relative;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 2px;
+            height: 30px;
+            margin-bottom: 10px;
+        }
+
+        .success {
+            background-color: #4CAF50;
+        }
+
+        .error {
+            background-color: #f44336;
+        }
+
+        .availability {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        .status-block {
+            border: 1px solid #ddd;
+            flex: 1;
+            height: 30px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .empty-block {
+            background-color: white;
+        }
+
+        .success { background-color: #4CAF50; }
+        .content-error { background-color: #FFEB3B; }
+        .timeout { background-color: #0068d7; }
+        .error { background-color: #f44336; }
+
+        .stats-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .stat-item {
+            margin: 5px 0;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        /* 悬浮窗样式 */
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .status-bar {
+                height: 20px;
+            }
+
+            .status-block {
+                height: 20px;
+            }
+
+            .tooltip {
+                max-width: 200px;
+                font-size: 14px;
+            }
+        }
+    </style>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>服务可用性监控</h1>
+    <div class="status-container">
+        <div class="status-bar" id="statusBar"></div>
+    </div>
+
+    <!-- 统计信息面板 -->
+    <div class="stats-panel">
+        <div class="stat-item">总检查次数: <span id="totalChecks">0</span></div>
+        <div class="stat-item">成功次数: <span id="successCount">0</span></div>
+        <div class="stat-item">内容错误: <span id="contentErrorCount">0</span></div>
+        <div class="stat-item">超时次数: <span id="timeoutCount">0</span></div>
+        <div class="stat-item">其他错误: <span id="errorCount">0</span></div>
+        <div class="stat-item">api可用率: <span id="availability">0%</span></div>
+    </div>
+
+    <!-- 历史可用率折线图 -->
+    <div class="chart-container">
+        <canvas id="availabilityChart"></canvas>
+    </div>
+
+    <!-- 悬浮窗 -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // 初始化 Chart.js 折线图
+        const ctx = document.getElementById('availabilityChart').getContext('2d');
+        const availabilityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // 时间戳
+                datasets: [{
+                    label: '历史可用率',
+                    data: [], // 可用率数据
+                    borderColor: '#2196F3',
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '可用率 (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // 悬浮窗相关逻辑
+        const tooltip = document.getElementById('tooltip');
+
+        function showTooltip(content, x, y) {
+            tooltip.innerHTML = content;
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.style.display = 'block';
+        }
+
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+
+        // 点击状态块显示悬浮窗
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('status-block')) {
+                const content = event.target.title;
+                const rect = event.target.getBoundingClientRect();
+                showTooltip(content, rect.left + window.scrollX, rect.bottom + window.scrollY);
+            } else {
+                hideTooltip();
+            }
+        });
+
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    // 直接显示外部提供的可用率
+                    const availability = (data.availability * 100).toFixed(2);
+                    document.getElementById('availability').textContent = `${availability}%`;
+
+                    // 更新状态条（始终显示50个块）
+                    const statusBar = document.getElementById('statusBar');
+                    statusBar.innerHTML = '';
+
+                    for (let i = 0; i < 50; i++) {
+                        const block = document.createElement('div');
+                        block.className = 'status-block';
+
+                        if (i < data.checks.length) {
+                            const check = data.checks[i];
+                            let statusClass = '';
+                            switch(check.status_type) {
+                                case 0: statusClass = 'success'; break;
+                                case 1: statusClass = 'content-error'; break;
+                                case 2: statusClass = 'timeout'; break;
+                                default: statusClass = 'error';
+                            }
+                            block.classList.add(statusClass);
+
+                            // 更新统计信息
+                            document.getElementById('totalChecks').textContent = data.current_count;
+                            const counts = data.checks.reduce((acc, curr) => {
+                                acc[curr.status_type] = (acc[curr.status_type] || 0) + 1;
+                                return acc;
+                            }, {0:0, 1:0, 2:0, 3:0});
+                            document.getElementById('successCount').textContent = counts[0];
+                            document.getElementById('contentErrorCount').textContent = counts[1];
+                            document.getElementById('timeoutCount').textContent = counts[2];
+                            document.getElementById('errorCount').textContent = counts[3];
+
+                            // 设置悬浮窗内容
+                            block.title = `时间: ${check.timestamp}\n`
+                                        + `状态码: ${check.status_code}\n`
+                                        + `状态: ${check.status}\n`
+                                        + `耗时: ${check.duration}s`;
+                        } else {
+                            block.classList.add('empty-block');
+                        }
+                        statusBar.appendChild(block);
+                    }
+
+                    // 更新历史可用率折线图
+                    const timestamp = new Date().toLocaleTimeString();
+                    availabilityChart.data.labels.push(timestamp);
+                    availabilityChart.data.datasets[0].data.push(availability);
+
+                    // 最多显示 50 个数据点
+                    if (availabilityChart.data.labels.length > 50) {
+                        availabilityChart.data.labels.shift();
+                        availabilityChart.data.datasets[0].data.shift();
+                    }
+
+                    availabilityChart.update();
+                });
+        }
+
+        // 每3秒自动更新
+        setInterval(updateStatus, 3000);
+        updateStatus(); // 初始加载
+    </script>
+</body>
+</html>
