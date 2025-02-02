@@ -4,7 +4,7 @@ import time
 
 head = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer <APIkey>'
+    'Authorization': 'Bearer sk-c78fff1e8f4548c5ac6141cc28d5d65b'
 }
 
 
@@ -14,7 +14,7 @@ def check():
     try:
         startTime = time.time()
         result = requests.post("https://api.deepseek.com/chat/completions", headers=head, json={
-            "model": "deepseek-chat",
+            "model": "deepseek-reasoner",
             "messages": [
                 {"role": "system", "content": "This is a test. JUST AND ONLY say \"IM HERE.\"."},
                 {"role": "user", "content": "Are you here?"}
@@ -30,16 +30,16 @@ def check():
         print(output)
 
         if (result.status_code == 200) and (output == "IM HERE."):
-            return {'available': 1, 'info': 'Success', 'code': result.status_code, 'time': duration}
+            return {'available': 0, 'info': 'Success', 'code': result.status_code, 'duration': duration}
         elif result.status_code == 200:
-            return {'available': 2, 'info': '200 OK, Incorrect Answer', 'code': result.status_code, 'time': duration}
+            return {'available': 1, 'info': '200 OK, Incorrect Answer', 'code': result.status_code, 'duration': duration}
 
     except requests.ConnectTimeout:
-        return {'available': 0, 'info': 'Connect Timeout', 'code': result.status_code, 'time': duration}
+        return {'available': 2, 'info': 'Connect Timeout', 'code': result.status_code, 'duration': duration}
     except requests.ConnectionError:
-        return {'available': 0, 'info': 'Connect Failed', 'code': result.status_code, 'time': duration}
+        return {'available': 3, 'info': 'Connect Failed', 'code': result.status_code, 'duration': duration}
     except Exception as e:
-        return {'available': 0, 'info': e, 'code': result.status_code, 'time': duration}
+        return {'available': 3, 'info': e, 'code': result.status_code, 'duration': duration}
 
 
 if __name__ == '__main__':

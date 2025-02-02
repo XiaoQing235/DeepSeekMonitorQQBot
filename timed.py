@@ -1,5 +1,8 @@
 import time
 import os
+
+import requests
+
 from check import check
 
 os.system("cls")
@@ -20,8 +23,8 @@ with open('logs.txt', "a+") as f:
             if checkresult.get('info') == "Success":
                 success += 1
 
-            success_rate = (success / times) * 100 if times > 0 else 0
-            succprob = f"{success_rate:.2f}%"
+            success_rate = (success / times) if times > 0 else 0
+            succprob = f"{success_rate * 100:.2f}%"
 
             nowtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
             log_line = f"{nowtime} {checkresult.get('code', 'N/A')} {checkresult.get('info', '')} {succprob}"
@@ -29,7 +32,14 @@ with open('logs.txt', "a+") as f:
             f.flush()
 
             print(f"Times: {times}, Success Rate: {succprob}")
-            time.sleep(5)
+            requests.post("http://127.0.0.1/post",data={
+                    "status_type": checkresult["available"],
+                    "status_code": checkresult["code"],
+                    "duration": checkresult["duration"],
+                    "timestamp": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+                    "availability":success_rate
+            })
+            time.sleep(300)
 
         except ZeroDivisionError:
             print("Error: Division by zero occurred")
@@ -37,4 +47,4 @@ with open('logs.txt', "a+") as f:
             print(f"Missing key in checkresult: {e}")
         except Exception as e:
             print(f"Unexpected error: {str(e)}")
-            break
+
