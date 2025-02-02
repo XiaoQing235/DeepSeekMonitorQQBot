@@ -4,8 +4,6 @@ import json
 import uuid
 from typing import Dict
 
-global client
-
 
 class OneBotClient:
     def __init__(self, ws_url: str):
@@ -24,10 +22,10 @@ class OneBotClient:
                 )
                 print("连接成功！")
                 await asyncio.create_task(self.receiver())
-                await self._keep_alive()  # 重置重连间隔
+                await asyncio.create_task(self._keep_alive())
             except (ConnectionRefusedError, websockets.ConnectionClosed):
-                print("连接失败，30秒后重试...")
-                await asyncio.sleep(30)
+                print("连接失败，20秒后重试...")
+                await asyncio.sleep(20)
 
     async def receiver(self):
         try:
@@ -40,7 +38,7 @@ class OneBotClient:
                         future.set_result(data)
 
                 else:
-                    print("\n[事件推送]", data)
+                    print("\n[事件接受]", data)
         except websockets.ConnectionClosed:
             print("连接已断开")
 
@@ -51,7 +49,7 @@ class OneBotClient:
         :param params: API参数
         :return: 服务端响应
         """
-        if not self.connection or self.connection.closed:
+        if not self.connection:
             return {"status": "error", "msg": "未建立连接"}
 
         echo = str(uuid.uuid4())
@@ -74,14 +72,28 @@ class OneBotClient:
             return {"status": "error", "msg": str(e)}
 
     async def _keep_alive(self):
-        while self.connection.open:
-            await self.post_action("get_status", {})
+        while self.connection:
+            try:
+                await self.post_action("get_status", {})
+            except Exception as e:
+                print(f"心肌梗死了：{e}")
             await asyncio.sleep(15)
+
+    async def disconnect(self, code: int, reason: str):
+        if self.connection:
+            await self.connection.close(code=code, reason=reason)
+            self.connection = None
+
+            for echo, future in self.pending_requests.items():
+                if not future.done():
+                    future.set_exception(ConnectionError("连接已主动关闭"))
+            self.pending_requests.clear()
+            print("连接已关闭")
 
 
 async def main():
     client = OneBotClient("ws://127.0.0.1:22801")
-    await client.connect()
+    connect_task = asyncio.create_task(client.connect())
 
 if __name__ == "__main__":
     asyncio.run(main())
