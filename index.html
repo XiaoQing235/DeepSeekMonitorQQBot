@@ -19,6 +19,16 @@
             color: #000000; /* 前景文字颜色 */
         }
 
+        body.high-contrast-theme {
+            background-color: #000000; /* 高对比度背景 */
+            color: #ffffff; /* 高对比度前景 */
+        }
+
+        body.teal-theme {
+            background-color: #e0f7fa; /* 青绿色背景 */
+            color: #00695c; /* 青绿色前景 */
+        }
+
         .status-container {
             position: relative;
             border: 1px solid #444; /* 暗色调边框 */
@@ -32,6 +42,16 @@
         body.light-theme .status-container {
             background-color: #f5f5f5; /* 亮色调容器背景 */
             border-color: #ddd; /* 亮色调边框 */
+        }
+
+        body.high-contrast-theme .status-container {
+            background-color: #000000; /* 高对比度容器背景 */
+            border-color: #ffffff; /* 高对比度边框 */
+        }
+
+        body.teal-theme .status-container {
+            background-color: #b2dfdb; /* 青绿色容器背景 */
+            border-color: #00695c; /* 青绿色边框 */
         }
 
         .status-bar {
@@ -82,12 +102,28 @@
             border-color: #ddd; /* 亮色调边框 */
         }
 
+        body.high-contrast-theme .status-block {
+            border-color: #ffffff; /* 高对比度边框 */
+        }
+
+        body.teal-theme .status-block {
+            border-color: #00695c; /* 青绿色边框 */
+        }
+
         .empty-block {
             background-color: #2d2d2d; /* 暗色调背景 */
         }
 
         body.light-theme .empty-block {
             background-color: #f5f5f5; /* 亮色调背景 */
+        }
+
+        body.high-contrast-theme .empty-block {
+            background-color: #000000; /* 高对比度背景 */
+        }
+
+        body.teal-theme .empty-block {
+            background-color: #b2dfdb; /* 青绿色背景 */
         }
 
         .success { background-color: #4CAF50; }
@@ -109,6 +145,16 @@
             border-color: #ddd; /* 亮色调边框 */
         }
 
+        body.high-contrast-theme .stats-panel {
+            background: #000000; /* 高对比度背景 */
+            border-color: #ffffff; /* 高对比度边框 */
+        }
+
+        body.teal-theme .stats-panel {
+            background: #b2dfdb; /* 青绿色背景 */
+            border-color: #00695c; /* 青绿色边框 */
+        }
+
         .stat-item {
             margin: 5px 0;
         }
@@ -125,6 +171,16 @@
         body.light-theme .chart-container {
             background: #f5f5f5; /* 亮色调背景 */
             border-color: #ddd; /* 亮色调边框 */
+        }
+
+        body.high-contrast-theme .chart-container {
+            background: #000000; /* 高对比度背景 */
+            border-color: #ffffff; /* 高对比度边框 */
+        }
+
+        body.teal-theme .chart-container {
+            background: #b2dfdb; /* 青绿色背景 */
+            border-color: #00695c; /* 青绿色边框 */
         }
 
         /* 悬浮窗样式 */
@@ -148,6 +204,18 @@
             background-color: #ffffff; /* 亮色调背景 */
             border-color: #ddd; /* 亮色调边框 */
             color: #000000; /* 前景文字颜色 */
+        }
+
+        body.high-contrast-theme .tooltip {
+            background-color: #000000; /* 高对比度背景 */
+            border-color: #ffffff; /* 高对比度边框 */
+            color: #ffffff; /* 前景文字颜色 */
+        }
+
+        body.teal-theme .tooltip {
+            background-color: #b2dfdb; /* 青绿色背景 */
+            border-color: #00695c; /* 青绿色边框 */
+            color: #00695c; /* 前景文字颜色 */
         }
 
         .tooltip.show {
@@ -197,6 +265,19 @@
             padding: 10px 20px;
             cursor: pointer;
         }
+
+        /* 数据导出按钮 */
+        .export-button {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
     </style>
     <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -204,6 +285,7 @@
 <body>
     <h1>服务可用性监控</h1>
     <button class="theme-switch" onclick="toggleTheme()">切换主题</button>
+    <button class="export-button" onclick="exportData()">导出数据</button>
     <div class="status-container">
         <div class="status-bar" id="statusBar"></div>
     </div>
@@ -290,16 +372,20 @@
         });
 
         // 主题切换逻辑
+        const themes = ['dark', 'light', 'high-contrast', 'teal'];
+        let currentThemeIndex = 0;
+
         function toggleTheme() {
-            document.body.classList.toggle('light-theme');
-            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+            document.body.classList.remove(themes[currentThemeIndex] + '-theme');
+            currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+            document.body.classList.add(themes[currentThemeIndex] + '-theme');
+            localStorage.setItem('theme', themes[currentThemeIndex]);
         }
 
         // 初始化主题
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-theme');
-        }
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.classList.add(savedTheme + '-theme');
+        currentThemeIndex = themes.indexOf(savedTheme);
 
         // 折线图数据持久化
         function saveChartData() {
@@ -317,6 +403,22 @@
 
         // 初始化时加载持久化的数据
         loadChartData();
+
+        // 数据导出功能
+        function exportData() {
+            const labels = availabilityChart.data.labels;
+            const data = availabilityChart.data.datasets[0].data;
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "时间,可用率\n" 
+                + labels.map((label, index) => `${label},${data[index]}`).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "availability_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         function updateStatus() {
             fetch('/status')
