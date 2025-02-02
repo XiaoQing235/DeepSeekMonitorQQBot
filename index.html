@@ -29,6 +29,41 @@
             color: #00695c; /* 青绿色前景 */
         }
 
+/* 添加柠檬黄主题 */
+body.lemon-theme {
+    background-color: #fff3e0; /* 柠檬黄背景 */
+    color: #ff6f00; /* 前景文字颜色 */
+}
+
+body.lemon-theme .status-container {
+    background-color: #ffe0b2; /* 柠檬黄容器背景 */
+    border-color: #ff6f00; /* 柠檬黄边框 */
+}
+
+body.lemon-theme .status-block {
+    border-color: #ff6f00; /* 柠檬黄边框 */
+}
+
+body.lemon-theme .empty-block {
+    background-color: #ffe0b2; /* 柠檬黄背景 */
+}
+
+body.lemon-theme .stats-panel {
+    background: #ffe0b2; /* 柠檬黄背景 */
+    border-color: #ff6f00; /* 柠檬黄边框 */
+}
+
+body.lemon-theme .chart-container {
+    background: #ffe0b2; /* 柠檬黄背景 */
+    border-color: #ff6f00; /* 柠檬黄边框 */
+}
+
+body.lemon-theme .tooltip {
+    background-color: #ffe0b2; /* 柠檬黄背景 */
+    border-color: #ff6f00; /* 柠檬黄边框 */
+    color: #ff6f00; /* 前景文字颜色 */
+}
+
         .status-container {
             position: relative;
             border: 1px solid #444; /* 暗色调边框 */
@@ -372,15 +407,15 @@
         });
 
         // 主题切换逻辑
-        const themes = ['dark', 'light', 'high-contrast', 'teal'];
-        let currentThemeIndex = 0;
+       const themes = ['dark', 'light', 'high-contrast', 'teal', 'lemon']; // 添加柠檬黄主题
+       let currentThemeIndex = 0;
 
-        function toggleTheme() {
-            document.body.classList.remove(themes[currentThemeIndex] + '-theme');
-            currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-            document.body.classList.add(themes[currentThemeIndex] + '-theme');
-            localStorage.setItem('theme', themes[currentThemeIndex]);
-        }
+function toggleTheme() {
+    document.body.classList.remove(themes[currentThemeIndex] + '-theme');
+    currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+    document.body.classList.add(themes[currentThemeIndex] + '-theme');
+    localStorage.setItem('theme', themes[currentThemeIndex]);
+}
 
         // 初始化主题
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -405,100 +440,96 @@
         loadChartData();
 
         // 数据导出功能
-        function exportData() {
-            const labels = availabilityChart.data.labels;
-            const data = availabilityChart.data.datasets[0].data;
-            const checks = JSON.parse(localStorage.getItem('checks') || '[]');
+       function exportData() {
+    const labels = availabilityChart.data.labels;
+    const data = availabilityChart.data.datasets[0].data;
+    const checks = JSON.parse(localStorage.getItem('checks') || '[]');
 
-            const csvContent = "data:text/csv;charset=utf-8,\ufeff" 
-                + "检查次数,可用率,状态码,状态,耗时\n" 
-                + labels.map((label, index) => {
-                    const check = checks[index] || {};
-                    return `${label},${data[index]},${check.status_code || ''},${check.status || ''},${check.duration || ''}`;
-                }).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8,\ufeff" 
+        + "检查次数,可用率,状态码,状态,耗时,时间\n" 
+        + labels.map((label, index) => {
+            const check = checks[index] || {};
+            return `${label},${data[index]},${check.status_code || ''},${check.status || ''},${check.duration || ''},${check.timestamp || ''}`;
+        }).join("\n");
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "availability_data.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "availability_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
         // 存储检查数据
         let checks = JSON.parse(localStorage.getItem('checks') || '[]');
 
         function updateStatus() {
-            fetch('/status')
-                .then(response => response.json())
-                .then(data => {
-                    // 直接显示外部提供的可用率
-                    const availability = (data.availability * 100).toFixed(2);
-                    document.getElementById('availability').textContent = `${availability}%`;
+        fetch('/status')
+        .then(response => response.json())
+        .then(data => {
+            const availability = (data.availability * 100).toFixed(2);
+            document.getElementById('availability').textContent = `${availability}%`;
 
-                    // 更新状态条（始终显示50个块）
-                    const statusBar = document.getElementById('statusBar');
-                    statusBar.innerHTML = '';
+            const statusBar = document.getElementById('statusBar');
+            statusBar.innerHTML = '';
 
-                    for (let i = 0; i < 50; i++) {
-                        const block = document.createElement('div');
-                        block.className = 'status-block';
+            for (let i = 0; i < 50; i++) {
+                const block = document.createElement('div');
+                block.className = 'status-block';
 
-                        if (i < data.checks.length) {
-                            const check = data.checks[i];
-                            let statusClass = '';
-                            switch(check.status_type) {
-                                case 0: statusClass = 'success'; break;
-                                case 1: statusClass = 'content-error'; break;
-                                case 2: statusClass = 'timeout'; break;
-                                default: statusClass = 'error';
-                            }
-                            block.classList.add(statusClass);
-
-                            // 更新统计信息
-                            document.getElementById('totalChecks').textContent = data.current_count;
-                            const counts = data.checks.reduce((acc, curr) => {
-                                acc[curr.status_type] = (acc[curr.status_type] || 0) + 1;
-                                return acc;
-                            }, {0:0, 1:0, 2:0, 3:0});
-                            document.getElementById('successCount').textContent = counts[0];
-                            document.getElementById('contentErrorCount').textContent = counts[1];
-                            document.getElementById('timeoutCount').textContent = counts[2];
-                            document.getElementById('errorCount').textContent = counts[3];
-
-                            // 设置悬浮窗内容
-                            block.title = `时间: ${check.timestamp}\n`
-                                        + `状态码: ${check.status_code}\n`
-                                        + `状态: ${check.status}\n`
-                                        + `耗时: ${check.duration}s`;
-                        } else {
-                            block.classList.add('empty-block');
-                        }
-                        statusBar.appendChild(block);
+                if (i < data.checks.length) {
+                    const check = data.checks[i];
+                    let statusClass = '';
+                    switch(check.status_type) {
+                        case 0: statusClass = 'success'; break;
+                        case 1: statusClass = 'content-error'; break;
+                        case 2: statusClass = 'timeout'; break;
+                        default: statusClass = 'error';
                     }
+                    block.classList.add(statusClass);
 
-                    // 更新历史可用率折线图
-                    const checkCount = data.current_count;
-                    availabilityChart.data.labels.push(checkCount);
-                    availabilityChart.data.datasets[0].data.push(availability);
+                    document.getElementById('totalChecks').textContent = data.current_count;
+                    const counts = data.checks.reduce((acc, curr) => {
+                        acc[curr.status_type] = (acc[curr.status_type] || 0) + 1;
+                        return acc;
+                    }, {0:0, 1:0, 2:0, 3:0});
+                    document.getElementById('successCount').textContent = counts[0];
+                    document.getElementById('contentErrorCount').textContent = counts[1];
+                    document.getElementById('timeoutCount').textContent = counts[2];
+                    document.getElementById('errorCount').textContent = counts[3];
 
-                    // 存储检查数据
-                    checks.push(data.checks[data.checks.length - 1] || {});
-                    localStorage.setItem('checks', JSON.stringify(checks));
+                    block.title = `时间: ${check.timestamp}\n`
+                                + `状态码: ${check.status_code}\n`
+                                + `状态: ${check.status}\n`
+                                + `耗时: ${check.duration}s`;
+                } else {
+                    block.classList.add('empty-block');
+                }
+                statusBar.appendChild(block);
+            }
 
-                    // 动态调整数据点数量
-                    const maxDataPoints = window.innerWidth < 768 ? 30 : 50;
-                    if (availabilityChart.data.labels.length > maxDataPoints) {
-                        availabilityChart.data.labels.shift();
-                        availabilityChart.data.datasets[0].data.shift();
-                        checks.shift();
-                    }
+            // 只有在有新数据时才更新折线图
+            if (availabilityChart.data.labels.length === 0 || availabilityChart.data.labels[availabilityChart.data.labels.length - 1] !== data.current_count) {
+                const checkCount = data.current_count;
+                availabilityChart.data.labels.push(checkCount);
+                availabilityChart.data.datasets[0].data.push(availability);
 
-                    availabilityChart.update();
-                    saveChartData(); // 保存折线图数据
-                });
-        }
+                checks.push(data.checks[data.checks.length - 1] || {});
+                localStorage.setItem('checks', JSON.stringify(checks));
+
+                const maxDataPoints = window.innerWidth < 768 ? 30 : 50;
+                if (availabilityChart.data.labels.length > maxDataPoints) {
+                    availabilityChart.data.labels.shift();
+                    availabilityChart.data.datasets[0].data.shift();
+                    checks.shift();
+                }
+
+                availabilityChart.update();
+                saveChartData();
+            }
+        });
+}
 
         // 每3秒自动更新
         setInterval(updateStatus, 3000);
